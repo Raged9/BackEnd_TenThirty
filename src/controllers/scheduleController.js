@@ -3,12 +3,12 @@ const Schedule = require('../models/Schedule')
 const getAvailableSchedules = async (req, res) => {
   try {
     const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    today.setUTCHours(0, 0, 0, 0)
+    today.setUTCDate(today.getUTCDate() - 1)
 
     const schedules = await Schedule.find({
       date: { $gte: today },
       isAvailable: true,
-      bookedBy: null,
     }).sort({ date: 1 })
 
     res.json(schedules)

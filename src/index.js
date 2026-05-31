@@ -18,6 +18,7 @@ app.use('/api/auth', require('./routes/auth'))
 app.use('/api/content', require('./routes/content'))
 app.use('/api/schedules', require('./routes/schedule'))
 app.use('/api/upload', require('./routes/upload'))
+app.use('/api/appointments', require('./routes/appointment'))
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Ten Thirty Backend running' })
