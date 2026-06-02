@@ -5,13 +5,34 @@ const sendEmail = require('../utils/sendEmail')
 // POST /api/appointments  (public - user buat booking)
 const createAppointment = async (req, res) => {
   try {
-    const { name, email, phone, service, scheduleId, notes } = req.body
+    // 1. Dapatkan location dan captchaToken dari request body
+    const { name, email, phone, service, location, scheduleId, notes, captchaToken } = req.body
 
-    if (!name || !email || !phone || !service || !scheduleId) {
+    // 2. Validasi field wajib (tambahkan location)
+    if (!name || !email || !phone || !service || !location || !scheduleId) {
       return res.status(400).json({ message: 'Semua field wajib diisi' })
     }
 
-    // Cek jadwal masih tersedia
+    // 3. --- VERIFIKASI RECAPTCHA ---
+    if (!captchaToken) {
+      return res.status(400).json({ message: 'Validasi CAPTCHA diperlukan' })
+    }
+
+    const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${captchaToken}`;
+
+    // Node 18+ memiliki built-in fetch
+    const googleResponse = await fetch(verifyUrl, { method: 'POST' });
+    const googleData = await googleResponse.json();
+
+    if (!googleData.success) {
+      return res.status(400).json({ 
+        message: "Verifikasi CAPTCHA gagal. Silakan coba lagi." 
+      });
+    }
+    // --------------------------------
+
+    // 4. Cek jadwal masih tersedia
     const schedule = await Schedule.findById(scheduleId)
     if (!schedule) {
       return res.status(404).json({ message: 'Jadwal tidak ditemukan' })
@@ -20,12 +41,12 @@ const createAppointment = async (req, res) => {
       return res.status(400).json({ message: 'Jadwal ini sudah tidak tersedia' })
     }
 
-    // Buat appointment
+    // 5. Buat appointment (tambahkan location)
     const appointment = await Appointment.create({
-      name, email, phone, service, schedule: scheduleId, notes,
+      name, email, phone, service, location, schedule: scheduleId, notes,
     })
 
-    // Tandai jadwal sudah dibooking
+    // 6. Tandai jadwal sudah dibooking
     await Schedule.findByIdAndUpdate(scheduleId, {
       isAvailable: false,
       bookedBy: appointment._id,
