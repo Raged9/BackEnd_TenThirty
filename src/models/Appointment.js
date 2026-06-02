@@ -9,6 +9,7 @@ const appointmentSchema = new mongoose.Schema({
     required: true,
     enum: ['septic-design', 'inspection', 'environmental-consulting'],
   },
+  location: { type: String, required: true },
   schedule: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Schedule',
