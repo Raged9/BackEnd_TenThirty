@@ -1,12 +1,26 @@
-// File: BackEnd_TenThirty/src/controllers/salesController.js
 const Appointment = require('../models/Appointment');
 
 // GET /api/sales/stats (Protected - Admin Only)
 const getSalesStats = async (req, res) => {
   try {
     const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth(); // 0-11
 
-    // Agregasi jumlah appointment per bulan untuk tahun berjalan
+    // 1. Calculate Top Metrics based on Appointment Status
+    // Confirmed = Klien Aktif
+    const totalClients = await Appointment.countDocuments({ status: 'confirmed' });
+    
+    // Schedules created this month that are confirmed
+    const startOfMonth = new Date(currentYear, currentMonth, 1);
+    const monthlySchedules = await Appointment.countDocuments({ 
+      status: 'confirmed',
+      createdAt: { $gte: startOfMonth }
+    });
+
+    // Pending = Prospek Baru
+    const newProspects = await Appointment.countDocuments({ status: 'pending' });
+
+    // 2. Chart Data (Monthly Fluctuation)
     const stats = await Appointment.aggregate([
       {
         $match: {
@@ -22,21 +36,21 @@ const getSalesStats = async (req, res) => {
           count: { $sum: 1 },
         },
       },
-      { $sort: { '_id': 1 } },
     ]);
 
-    // Format array isi 12 bulan (Jan - Des) dengan nilai default 0
-    const monthlyData = Array.from({ length: 12 }, (_, i) => ({
-      month: new Date(0, i).toLocaleString('id-ID', { month: 'short' }),
-      value: 0,
-    }));
-
-    // Masukkan hasil agregasi database ke dalam array formatan
+    // Format array to directly send 12 numbers: [0, 0, 0...] for the graph
+    const monthlyDataArray = Array(12).fill(0);
     stats.forEach((item) => {
-      monthlyData[item._id - 1].value = item.count;
+      monthlyDataArray[item._id - 1] = item.count;
     });
 
-    res.json({ success: true, year: currentYear, data: monthlyData });
+    res.json({ 
+      success: true, 
+      totalClients,
+      monthlySchedules,
+      newProspects,
+      monthlyData: monthlyDataArray 
+    });
   } catch (error) {
     res.status(500).json({ message: 'Gagal memuat statistik sales', error: error.message });
   }
@@ -49,19 +63,18 @@ const searchClients = async (req, res) => {
     let query = {};
 
     if (search) {
-      // Mencari berdasarkan nama klien, nama UMKM, atau email (case-insensitive)
+      // Search by name or email
       query = {
         $or: [
           { name: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
-          { companyName: { $regex: search, $options: 'i' } }, // Sesuaikan dengan field model Anda
+          { email: { $regex: search, $options: 'i' } }
         ],
       };
     }
 
     const clients = await Appointment.find(query)
       .select('name email phone service status createdAt')
-      .limit(10) // Batasi 10 hasil untuk efisiensi dropdown pencarian
+      .limit(5) // Limit to 5 so the dropdown doesn't get too long
       .sort({ createdAt: -1 });
 
     res.json({ success: true, data: clients });
