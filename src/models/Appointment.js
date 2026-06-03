@@ -9,6 +9,7 @@ const appointmentSchema = new mongoose.Schema({
     required: true,
     enum: ['septic-design', 'inspection', 'environmental-consulting'],
   },
+  location: { type: String, required: true },
   schedule: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Schedule',
@@ -17,7 +18,7 @@ const appointmentSchema = new mongoose.Schema({
   notes: { type: String, trim: true },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'cancelled'],
+    enum: ['pending', 'confirmed', 'cancelled', 'done'],
     default: 'pending',
   },
 }, { timestamps: true })
