@@ -26,4 +26,25 @@ const deleteImage = async (req, res) => {
   }
 }
 
-module.exports = { uploadImage, deleteImage }
+// 1. TAMBAHKAN FUNGSI INI UNTUK MENGAMBIL GAMBAR DARI CLOUDINARY
+const getImages = async (req, res) => {
+  try {
+    const { resources } = await cloudinary.search
+      .expression('resource_type:image')
+      .sort_by('created_at', 'desc')
+      .max_results(50)
+      .execute();
+      
+    const images = resources.map((file) => ({
+      url: file.secure_url,
+      public_id: file.public_id,
+    }));
+    
+    res.json(images);
+  } catch (error) {
+    res.status(500).json({ message: 'Gagal mengambil gambar', error: error.message });
+  }
+};
+
+// 2. PASTIKAN getImages DITAMBAHKAN DI SINI (DI EKSPOR)
+module.exports = { uploadImage, deleteImage, getImages }
