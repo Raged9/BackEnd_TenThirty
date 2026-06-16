@@ -1,9 +1,11 @@
 const nodemailer = require('nodemailer')
 
 const sendEmail = async (options) => {
-  // Menggunakan Gmail sebagai transporter
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    service: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    requireTLS: true,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
